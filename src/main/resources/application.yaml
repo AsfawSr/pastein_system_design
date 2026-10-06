@@ -24,7 +24,7 @@ pastebin:
     interval: PT10M
   rate-limit:
     capacity: 10
-    refill-per-minute: 10
+    window: PT1M
   jwt:
     # dev-only secret; override via PASTEBIN_JWT_SECRET in production
     secret: dev-only-secret-change-me-0123456789abcdef
