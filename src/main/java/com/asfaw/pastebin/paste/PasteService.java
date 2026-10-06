@@ -1,5 +1,6 @@
 package com.asfaw.pastebin.paste;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,7 @@ public class PasteService {
     private final IdGenerator idGenerator;
     private final Clock clock;
     private final PasswordEncoder passwordEncoder;
+    private final MeterRegistry meterRegistry;
 
     @Transactional
     public Paste create(CreatePasteCommand command) {
@@ -39,7 +41,9 @@ public class PasteService {
         if (command.password() != null && !command.password().isBlank()) {
             paste.setPasswordHash(passwordEncoder.encode(command.password()));
         }
-        return repository.save(paste);
+        Paste saved = repository.save(paste);
+        meterRegistry.counter("pastebin.pastes.created", "visibility", saved.getVisibility().name()).increment();
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -64,6 +68,7 @@ public class PasteService {
                     .orElseThrow(() -> new PasteNotFoundException(id));
             repository.delete(locked);
             finder.evict(id);
+            meterRegistry.counter("pastebin.pastes.burned").increment();
             return new ViewOutcome.Viewed(locked, true);
         }
         repository.incrementViews(id);

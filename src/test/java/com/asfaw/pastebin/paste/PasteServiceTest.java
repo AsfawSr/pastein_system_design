@@ -7,6 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -39,9 +41,12 @@ class PasteServiceTest {
 
     private PasteService service;
 
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     @BeforeEach
     void setUp() {
-        service = new PasteService(repository, finder, idGenerator, Clock.fixed(NOW, ZoneOffset.UTC), passwordEncoder);
+        service = new PasteService(repository, finder, idGenerator, Clock.fixed(NOW, ZoneOffset.UTC),
+                passwordEncoder, meterRegistry);
     }
 
     @Test
@@ -58,6 +63,7 @@ class PasteServiceTest {
         assertThat(paste.getPasswordHash()).isNull();
         assertThat(paste.getVisibility()).isEqualTo(PasteVisibility.UNLISTED);
         assertThat(paste.getLanguage()).isEqualTo("java");
+        assertThat(meterRegistry.counter("pastebin.pastes.created", "visibility", "UNLISTED").count()).isEqualTo(1.0);
     }
 
     @Test
