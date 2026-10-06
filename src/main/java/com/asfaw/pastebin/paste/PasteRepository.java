@@ -19,4 +19,9 @@ public interface PasteRepository extends JpaRepository<Paste, String> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Paste p where p.id = :id")
     Optional<Paste> findByIdForUpdate(@Param("id") String id);
+
+    // atomic in-database increment: safe under concurrent reads, no lost updates
+    @Modifying
+    @Query("update Paste p set p.views = p.views + 1 where p.id = :id")
+    int incrementViews(@Param("id") String id);
 }

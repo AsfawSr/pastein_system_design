@@ -20,6 +20,7 @@
             <span th:text="'Created ' + ${#temporals.format(paste.createdAt, 'yyyy-MM-dd HH:mm')} + ' UTC'">created</span>
             <span th:if="${paste.expiresAt != null}"
                   th:text="'· Expires ' + ${#temporals.format(paste.expiresAt, 'yyyy-MM-dd HH:mm')} + ' UTC'">expires</span>
+            <span th:text="'· ' + ${paste.views} + ' views'">views</span>
         </p>
         <pre><code th:text="${paste.content}">content</code></pre>
     </article>

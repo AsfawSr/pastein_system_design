@@ -42,6 +42,7 @@ public class PasteService {
             repository.delete(locked);
             return new ViewedPaste(locked, true);
         }
+        repository.incrementViews(id);
         return new ViewedPaste(paste, false);
     }
 

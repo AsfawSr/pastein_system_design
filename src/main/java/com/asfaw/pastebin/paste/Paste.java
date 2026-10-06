@@ -34,4 +34,7 @@ public class Paste {
 
     @Column(nullable = false)
     private boolean burnAfterRead;
+
+    @Column(nullable = false)
+    private long views;
 }

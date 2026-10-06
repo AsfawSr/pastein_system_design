@@ -130,6 +130,28 @@ class PasteServiceTest {
     }
 
     @Test
+    void viewIncrementsCounterAtomicallyInDatabase() {
+        Paste stored = pasteExpiringAt(null);
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+
+        service.view("abc12345");
+
+        verify(repository).incrementViews("abc12345");
+    }
+
+    @Test
+    void viewDoesNotCountBurnReads() {
+        Paste stored = pasteExpiringAt(null);
+        stored.setBurnAfterRead(true);
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.of(stored));
+
+        service.view("abc12345");
+
+        verify(repository, never()).incrementViews(any());
+    }
+
+    @Test
     void viewOfBurnPasteDeletesUnderLockAndReportsBurned() {
         Paste stored = pasteExpiringAt(null);
         stored.setBurnAfterRead(true);
