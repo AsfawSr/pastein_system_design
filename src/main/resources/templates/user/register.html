@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register — Pastebin</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header>
+    <h1><a th:href="@{/}">Pastebin</a></h1>
+    <nav><a th:href="@{/public}">Public pastes</a></nav>
+</header>
+<main>
+    <h2>Create an account</h2>
+    <form th:action="@{/register}" th:object="${form}" method="post">
+        <label for="username">Username</label>
+        <input id="username" type="text" th:field="*{username}" autofocus>
+        <p class="error" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">username error</p>
+
+        <label for="password">Password</label>
+        <input id="password" type="password" th:field="*{password}">
+        <p class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">password error</p>
+
+        <label for="confirmPassword">Confirm password</label>
+        <input id="confirmPassword" type="password" th:field="*{confirmPassword}">
+        <p class="error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}">confirm error</p>
+
+        <button type="submit">Register</button>
+    </form>
+</main>
+</body>
+</html>
