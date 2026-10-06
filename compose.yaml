@@ -1,0 +1,36 @@
+# Dev DB only:      docker compose up -d
+# Full stack:       docker compose --profile full up --build
+# NOTE: postgres maps to host port 5433 to avoid clashing with a locally installed PostgreSQL on 5432.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: pastebin
+      POSTGRES_USER: pastebin
+      POSTGRES_PASSWORD: pastebin
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pastebin -d pastebin"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    profiles: ["full"]
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pastebin
+      SPRING_DATASOURCE_USERNAME: pastebin
+      SPRING_DATASOURCE_PASSWORD: pastebin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
