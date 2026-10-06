@@ -8,5 +8,6 @@ public record CreatePasteCommand(
         Duration ttl,
         boolean burnAfterRead,
         String password,
-        PasteVisibility visibility) {
+        PasteVisibility visibility,
+        String language) {
 }

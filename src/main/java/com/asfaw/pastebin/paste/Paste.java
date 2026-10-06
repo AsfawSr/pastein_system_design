@@ -46,4 +46,7 @@ public class Paste {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private PasteVisibility visibility = PasteVisibility.UNLISTED;
+
+    @Column(nullable = false, length = 32)
+    private String language = "plaintext";
 }

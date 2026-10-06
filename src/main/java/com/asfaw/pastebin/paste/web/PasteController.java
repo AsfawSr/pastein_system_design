@@ -16,26 +16,34 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+
 @Controller
 @RequiredArgsConstructor
 public class PasteController {
+
+    static final List<String> LANGUAGES = List.of(
+            "plaintext", "bash", "c", "cpp", "csharp", "css", "go", "html", "java",
+            "javascript", "json", "kotlin", "python", "rust", "sql", "typescript", "xml", "yaml");
 
     private final PasteService service;
 
     @GetMapping("/")
     public String index(Model model) {
         model.addAttribute("form", new CreatePasteForm());
+        model.addAttribute("languages", LANGUAGES);
         return "index";
     }
 
     @PostMapping("/paste")
-    public String create(@Valid @ModelAttribute("form") CreatePasteForm form, BindingResult binding) {
+    public String create(@Valid @ModelAttribute("form") CreatePasteForm form, BindingResult binding, Model model) {
         if (binding.hasErrors()) {
+            model.addAttribute("languages", LANGUAGES);
             return "index";
         }
         Paste paste = service.create(new CreatePasteCommand(form.getTitle(), form.getContent(),
                 form.getExpiry().getDuration(), form.isBurnAfterRead(), form.getPassword(),
-                form.getVisibility()));
+                form.getVisibility(), form.getLanguage()));
         return "redirect:/p/" + paste.getId();
     }
 

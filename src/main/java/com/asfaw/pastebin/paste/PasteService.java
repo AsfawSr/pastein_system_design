@@ -33,6 +33,8 @@ public class PasteService {
         paste.setExpiresAt(command.ttl() == null ? null : now.plus(command.ttl()));
         paste.setBurnAfterRead(command.burnAfterRead());
         paste.setVisibility(command.visibility());
+        paste.setLanguage(command.language() == null || command.language().isBlank()
+                ? "plaintext" : command.language());
         if (command.password() != null && !command.password().isBlank()) {
             paste.setPasswordHash(passwordEncoder.encode(command.password()));
         }

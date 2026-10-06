@@ -4,6 +4,7 @@ import com.asfaw.pastebin.paste.CreatePasteCommand;
 import com.asfaw.pastebin.paste.PasteVisibility;
 import com.asfaw.pastebin.paste.web.ExpiryOption;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record CreatePasteRequest(
@@ -12,7 +13,8 @@ public record CreatePasteRequest(
         ExpiryOption expiry,
         Boolean burnAfterRead,
         @Size(max = 72) String password,
-        PasteVisibility visibility) {
+        PasteVisibility visibility,
+        @Pattern(regexp = "[a-z0-9]{1,32}") String language) {
 
     public CreatePasteCommand toCommand() {
         return new CreatePasteCommand(
@@ -21,6 +23,7 @@ public record CreatePasteRequest(
                 expiry == null ? null : expiry.getDuration(),
                 Boolean.TRUE.equals(burnAfterRead),
                 password,
-                visibility == null ? PasteVisibility.UNLISTED : visibility);
+                visibility == null ? PasteVisibility.UNLISTED : visibility,
+                language);
     }
 }

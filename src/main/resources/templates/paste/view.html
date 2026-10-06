@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${paste.title != null ? paste.title : 'Untitled'} + ' — Pastebin'">Paste — Pastebin</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" defer></script>
+    <script>window.addEventListener('DOMContentLoaded', () => hljs.highlightAll());</script>
 </head>
 <body>
 <header>
@@ -21,8 +25,9 @@
             <span th:if="${paste.expiresAt != null}"
                   th:text="'· Expires ' + ${#temporals.format(paste.expiresAt, 'yyyy-MM-dd HH:mm')} + ' UTC'">expires</span>
             <span th:text="'· ' + ${paste.views} + ' views'">views</span>
+            <span th:text="'· ' + ${paste.language}">language</span>
         </p>
-        <pre><code th:text="${paste.content}">content</code></pre>
+        <pre><code th:classappend="'language-' + ${paste.language}" th:text="${paste.content}">content</code></pre>
     </article>
     <p><a th:href="@{/}">+ New paste</a></p>
 </main>
