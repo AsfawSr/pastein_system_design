@@ -1,0 +1,33 @@
+package com.asfaw.pastebin.cleanup;
+
+import com.asfaw.pastebin.paste.PasteRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class PasteCleanupJobTest {
+
+    private static final Instant NOW = Instant.parse("2026-01-15T12:00:00Z");
+
+    @Mock
+    private PasteRepository repository;
+
+    @Test
+    void purgeDeletesEverythingExpiredAtCurrentInstant() {
+        when(repository.deleteExpired(NOW)).thenReturn(3);
+        PasteCleanupJob job = new PasteCleanupJob(repository, Clock.fixed(NOW, ZoneOffset.UTC));
+
+        job.purgeExpiredPastes();
+
+        verify(repository).deleteExpired(NOW);
+    }
+}
