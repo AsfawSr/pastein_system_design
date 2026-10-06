@@ -1,0 +1,4 @@
+pastebin:
+  rate-limit:
+    capacity: 100000
+    refill-per-minute: 100000

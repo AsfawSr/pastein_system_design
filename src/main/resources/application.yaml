@@ -20,6 +20,10 @@ pastebin:
   rate-limit:
     capacity: 10
     refill-per-minute: 10
+  jwt:
+    # dev-only secret; override via PASTEBIN_JWT_SECRET in production
+    secret: dev-only-secret-change-me-0123456789abcdef
+    ttl: PT1H
 
 management:
   endpoints:
