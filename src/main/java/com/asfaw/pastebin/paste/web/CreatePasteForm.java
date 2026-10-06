@@ -1,5 +1,6 @@
 package com.asfaw.pastebin.paste.web;
 
+import com.asfaw.pastebin.paste.PasteVisibility;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -24,4 +25,7 @@ public class CreatePasteForm {
 
     @Size(max = 72, message = "Password must be at most 72 characters")
     private String password;
+
+    @NotNull
+    private PasteVisibility visibility = PasteVisibility.UNLISTED;
 }

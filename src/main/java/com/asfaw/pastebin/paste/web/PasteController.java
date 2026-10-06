@@ -5,6 +5,7 @@ import com.asfaw.pastebin.paste.PasteService;
 import com.asfaw.pastebin.paste.ViewOutcome;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -32,8 +33,16 @@ public class PasteController {
             return "index";
         }
         Paste paste = service.create(form.getTitle(), form.getContent(),
-                form.getExpiry().getDuration(), form.isBurnAfterRead(), form.getPassword());
+                form.getExpiry().getDuration(), form.isBurnAfterRead(), form.getPassword(),
+                form.getVisibility());
         return "redirect:/p/" + paste.getId();
+    }
+
+    @GetMapping("/public")
+    public String publicList(@RequestParam(defaultValue = "0") int page, Model model) {
+        Page<Paste> pastes = service.listPublic(Math.max(page, 0), 20);
+        model.addAttribute("pastes", pastes);
+        return "paste/list";
     }
 
     @GetMapping("/p/{id}")

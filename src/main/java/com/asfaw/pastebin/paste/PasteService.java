@@ -1,6 +1,8 @@
 package com.asfaw.pastebin.paste;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +24,8 @@ public class PasteService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public Paste create(String title, String content, Duration ttl, boolean burnAfterRead, String rawPassword) {
+    public Paste create(String title, String content, Duration ttl, boolean burnAfterRead,
+                        String rawPassword, PasteVisibility visibility) {
         Instant now = clock.instant();
         Paste paste = new Paste();
         paste.setId(nextFreeId());
@@ -31,10 +34,16 @@ public class PasteService {
         paste.setCreatedAt(now);
         paste.setExpiresAt(ttl == null ? null : now.plus(ttl));
         paste.setBurnAfterRead(burnAfterRead);
+        paste.setVisibility(visibility);
         if (rawPassword != null && !rawPassword.isBlank()) {
             paste.setPasswordHash(passwordEncoder.encode(rawPassword));
         }
         return repository.save(paste);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Paste> listPublic(int page, int size) {
+        return repository.findVisible(PasteVisibility.PUBLIC, clock.instant(), PageRequest.of(page, size));
     }
 
     @Transactional

@@ -2,6 +2,8 @@ package com.asfaw.pastebin.paste;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -40,4 +42,8 @@ public class Paste {
 
     @Column(length = 100)
     private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private PasteVisibility visibility = PasteVisibility.UNLISTED;
 }

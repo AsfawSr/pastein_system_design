@@ -9,6 +9,7 @@
 <body>
 <header>
     <h1><a th:href="@{/}">Pastebin</a></h1>
+    <nav><a th:href="@{/public}">Public pastes</a></nav>
 </header>
 <main>
     <form th:action="@{/paste}" th:object="${form}" method="post">
@@ -25,6 +26,12 @@
         <select id="expiry" th:field="*{expiry}">
             <option th:each="opt : ${T(com.asfaw.pastebin.paste.web.ExpiryOption).values()}"
                     th:value="${opt}" th:text="${opt.label}">Never</option>
+        </select>
+
+        <label for="visibility">Visibility</label>
+        <select id="visibility" th:field="*{visibility}">
+            <option th:value="${T(com.asfaw.pastebin.paste.PasteVisibility).UNLISTED}">Unlisted (only people with the link)</option>
+            <option th:value="${T(com.asfaw.pastebin.paste.PasteVisibility).PUBLIC}">Public (listed on the public page)</option>
         </select>
 
         <label class="checkbox">

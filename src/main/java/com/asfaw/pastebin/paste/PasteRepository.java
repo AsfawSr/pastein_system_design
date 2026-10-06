@@ -1,6 +1,8 @@
 package com.asfaw.pastebin.paste;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -24,4 +26,15 @@ public interface PasteRepository extends JpaRepository<Paste, String> {
     @Modifying
     @Query("update Paste p set p.views = p.views + 1 where p.id = :id")
     int incrementViews(@Param("id") String id);
+
+    @Query("""
+            select p from Paste p
+            where p.visibility = :visibility
+              and (p.expiresAt is null or p.expiresAt > :now)
+              and p.burnAfterRead = false
+            order by p.createdAt desc
+            """)
+    Page<Paste> findVisible(@Param("visibility") PasteVisibility visibility,
+                            @Param("now") Instant now,
+                            Pageable pageable);
 }
