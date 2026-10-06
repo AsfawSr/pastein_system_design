@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.security.Principal;
 import java.util.List;
 
 @Controller
@@ -29,9 +30,10 @@ public class PasteController {
     private final PasteService service;
 
     @GetMapping("/")
-    public String index(Model model) {
+    public String index(Model model, Principal principal) {
         model.addAttribute("form", new CreatePasteForm());
         model.addAttribute("languages", LANGUAGES);
+        model.addAttribute("username", principal == null ? null : principal.getName());
         return "index";
     }
 

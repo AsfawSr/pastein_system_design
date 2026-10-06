@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -28,6 +29,7 @@ class PasteFlowTest {
     @Test
     void createViaFormThenViewRenderedPage() throws Exception {
         MvcResult result = mvc.perform(post("/paste")
+                        .with(csrf())
                         .param("title", "flow test")
                         .param("content", "full stack content")
                         .param("expiry", "NEVER")
@@ -49,6 +51,7 @@ class PasteFlowTest {
     @Test
     void blankContentRedisplaysFormWithErrors() throws Exception {
         mvc.perform(post("/paste")
+                        .with(csrf())
                         .param("title", "no content")
                         .param("content", "")
                         .param("expiry", "NEVER")
@@ -69,6 +72,7 @@ class PasteFlowTest {
     @Test
     void publicPasteAppearsInPublicList() throws Exception {
         mvc.perform(post("/paste")
+                        .with(csrf())
                         .param("title", "shown in list")
                         .param("content", "public content")
                         .param("expiry", "NEVER")
@@ -84,6 +88,7 @@ class PasteFlowTest {
     @Test
     void protectedPasteShowsPasswordFormThenUnlocks() throws Exception {
         MvcResult result = mvc.perform(post("/paste")
+                        .with(csrf())
                         .param("title", "locked")
                         .param("content", "secret content")
                         .param("expiry", "NEVER")
@@ -99,7 +104,7 @@ class PasteFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("paste/password"));
 
-        mvc.perform(post(location + "/unlock").param("password", "pw123"))
+        mvc.perform(post(location + "/unlock").with(csrf()).param("password", "pw123"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("paste/view"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("secret content")));

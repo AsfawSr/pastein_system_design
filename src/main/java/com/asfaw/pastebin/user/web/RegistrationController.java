@@ -40,6 +40,6 @@ public class RegistrationController {
             return "user/register";
         }
         redirectAttributes.addFlashAttribute("registered", true);
-        return "redirect:/";
+        return "redirect:/login";
     }
 }

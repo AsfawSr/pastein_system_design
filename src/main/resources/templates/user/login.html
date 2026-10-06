@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login — Pastebin</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header>
+    <h1><a th:href="@{/}">Pastebin</a></h1>
+    <nav><a th:href="@{/public}">Public pastes</a></nav>
+</header>
+<main>
+    <h2>Log in</h2>
+    <p class="warn" th:if="${registered}">Account created — you can log in now.</p>
+    <p class="error" th:if="${param.error}">Wrong username or password.</p>
+    <p class="warn" th:if="${param.logout}">You have been logged out.</p>
+    <form th:action="@{/login}" method="post">
+        <label for="username">Username</label>
+        <input id="username" type="text" name="username" autofocus>
+
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password">
+
+        <button type="submit">Log in</button>
+    </form>
+    <p>No account? <a th:href="@{/register}">Register</a></p>
+</main>
+</body>
+</html>
