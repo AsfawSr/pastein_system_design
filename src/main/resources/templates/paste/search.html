@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Search — Pastebin</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header>
+    <h1><a th:href="@{/}">Pastebin</a></h1>
+    <nav><a th:href="@{/public}">Public pastes</a></nav>
+</header>
+<main>
+    <h2>Search public pastes</h2>
+    <form th:action="@{/search}" method="get" class="searchbar">
+        <input type="search" name="q" th:value="${query}" placeholder="Search title and content..." autofocus>
+        <button type="submit">Search</button>
+    </form>
+
+    <div th:if="${pastes != null}">
+        <p th:if="${pastes.isEmpty()}">No results for "<span th:text="${query}">q</span>".</p>
+        <table th:unless="${pastes.isEmpty()}">
+            <thead>
+            <tr>
+                <th>Title</th>
+                <th>Created (UTC)</th>
+                <th>Views</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${pastes.content}">
+                <td><a th:href="@{/p/{id}(id=${p.id})}"
+                       th:text="${p.title != null ? p.title : 'Untitled'}">title</a></td>
+                <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}">created</td>
+                <td th:text="${p.views}">0</td>
+            </tr>
+            </tbody>
+        </table>
+        <nav class="pager" th:unless="${pastes.isEmpty()}">
+            <a th:if="${pastes.hasPrevious()}" th:href="@{/search(q=${query}, page=${pastes.number - 1})}">&laquo; Prev</a>
+            <span th:text="'Page ' + ${pastes.number + 1} + ' of ' + ${pastes.totalPages}">page</span>
+            <a th:if="${pastes.hasNext()}" th:href="@{/search(q=${query}, page=${pastes.number + 1})}">Next &raquo;</a>
+        </nav>
+    </div>
+</main>
+</body>
+</html>

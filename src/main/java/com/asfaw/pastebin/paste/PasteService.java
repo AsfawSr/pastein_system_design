@@ -62,6 +62,11 @@ public class PasteService {
         return repository.findByOwnerUsername(username, PageRequest.of(page, size));
     }
 
+    @Transactional(readOnly = true)
+    public Page<Paste> searchPublic(String query, int page, int size) {
+        return repository.searchPublic(query, clock.instant(), PageRequest.of(page, size));
+    }
+
     @Transactional
     public ViewOutcome view(String id, String rawPassword) {
         Paste paste = find(id).orElseThrow(() -> new PasteNotFoundException(id));

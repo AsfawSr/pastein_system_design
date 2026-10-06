@@ -45,4 +45,23 @@ public interface PasteRepository extends JpaRepository<Paste, String> {
 
     @Query("select p from Paste p where p.owner.username = :username order by p.createdAt desc")
     Page<Paste> findByOwnerUsername(@Param("username") String username, Pageable pageable);
+
+    // native: tsvector/GIN full-text search has no JPQL equivalent
+    @Query(value = """
+            select * from pastes p
+            where p.visibility = 'PUBLIC'
+              and p.burn_after_read = false
+              and (p.expires_at is null or p.expires_at > :now)
+              and p.search_vector @@ plainto_tsquery('english', :query)
+            order by ts_rank(p.search_vector, plainto_tsquery('english', :query)) desc
+            """,
+            countQuery = """
+            select count(*) from pastes p
+            where p.visibility = 'PUBLIC'
+              and p.burn_after_read = false
+              and (p.expires_at is null or p.expires_at > :now)
+              and p.search_vector @@ plainto_tsquery('english', :query)
+            """,
+            nativeQuery = true)
+    Page<Paste> searchPublic(@Param("query") String query, @Param("now") Instant now, Pageable pageable);
 }

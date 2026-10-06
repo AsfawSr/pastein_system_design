@@ -12,6 +12,10 @@
 </header>
 <main>
     <h2>Recent public pastes</h2>
+    <form th:action="@{/search}" method="get" class="searchbar">
+        <input type="search" name="q" placeholder="Search public pastes...">
+        <button type="submit">Search</button>
+    </form>
     <p th:if="${pastes.isEmpty()}">Nothing here yet — <a th:href="@{/}">create the first public paste</a>.</p>
     <table th:unless="${pastes.isEmpty()}">
         <thead>

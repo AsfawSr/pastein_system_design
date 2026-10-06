@@ -160,6 +160,43 @@ class PasteFlowTest {
     }
 
     @Test
+    void fullTextSearchFindsPublicPasteByContent() throws Exception {
+        mvc.perform(post("/paste")
+                        .with(csrf())
+                        .param("title", "searchable paste")
+                        .param("content", "the zebra jumped over the xylophone")
+                        .param("expiry", "NEVER")
+                        .param("visibility", "PUBLIC")
+                        .param("language", "plaintext"))
+                .andExpect(status().is3xxRedirection());
+
+        mvc.perform(get("/search").param("q", "zebra xylophone"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("searchable paste")));
+
+        mvc.perform(get("/search").param("q", "quuxflux"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("No results")));
+    }
+
+    @Test
+    void searchDoesNotExposeUnlistedPastes() throws Exception {
+        mvc.perform(post("/paste")
+                        .with(csrf())
+                        .param("title", "secret unlisted")
+                        .param("content", "wombat quasar confidential")
+                        .param("expiry", "NEVER")
+                        .param("visibility", "UNLISTED")
+                        .param("language", "plaintext"))
+                .andExpect(status().is3xxRedirection());
+
+        mvc.perform(get("/search").param("q", "wombat quasar"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("secret unlisted"))));
+    }
+
+    @Test
     void protectedPasteShowsPasswordFormThenUnlocks() throws Exception {
         MvcResult result = mvc.perform(post("/paste")
                         .with(csrf())

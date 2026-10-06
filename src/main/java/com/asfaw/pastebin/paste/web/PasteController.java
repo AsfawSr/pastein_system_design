@@ -71,6 +71,16 @@ public class PasteController {
         return "paste/list";
     }
 
+    @GetMapping("/search")
+    public String search(@RequestParam(required = false) String q,
+                         @RequestParam(defaultValue = "0") int page, Model model) {
+        model.addAttribute("query", q);
+        if (q != null && !q.isBlank()) {
+            model.addAttribute("pastes", service.searchPublic(q.trim(), Math.max(page, 0), 20));
+        }
+        return "paste/search";
+    }
+
     @GetMapping("/p/{id}")
     public String view(@PathVariable String id, Model model, Principal principal) {
         return render(service.view(id, null), id, model, principal);
