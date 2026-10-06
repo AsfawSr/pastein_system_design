@@ -1,0 +1,47 @@
+# Render blueprint: web service (Docker) + managed PostgreSQL + managed Redis.
+# Deploy: push to GitHub -> Render dashboard -> New Blueprint -> pick this repo.
+databases:
+  - name: pastebin-db
+    plan: free
+
+services:
+  - type: redis
+    name: pastebin-redis
+    plan: free
+    ipAllowList: []
+
+  - type: web
+    name: pastebin
+    runtime: docker
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_HOST
+        fromDatabase:
+          name: pastebin-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: pastebin-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: pastebin-db
+          property: database
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: pastebin-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: pastebin-db
+          property: password
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: pastebin-redis
+          property: connectionString
+      - key: PASTEBIN_JWT_SECRET
+        generateValue: true
