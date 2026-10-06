@@ -72,6 +72,41 @@ class PasteFlowTest {
     }
 
     @Test
+    void rawViewReturnsPlainTextContent() throws Exception {
+        MvcResult result = mvc.perform(post("/paste")
+                        .with(csrf())
+                        .param("title", "raw test")
+                        .param("content", "raw body text")
+                        .param("expiry", "NEVER")
+                        .param("visibility", "UNLISTED")
+                        .param("language", "plaintext"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        mvc.perform(get(result.getResponse().getRedirectedUrl() + "/raw"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/plain"))
+                .andExpect(content().string("raw body text"));
+    }
+
+    @Test
+    void rawViewRefusesPasswordProtectedPaste() throws Exception {
+        MvcResult result = mvc.perform(post("/paste")
+                        .with(csrf())
+                        .param("title", "locked raw")
+                        .param("content", "hidden")
+                        .param("expiry", "NEVER")
+                        .param("visibility", "UNLISTED")
+                        .param("language", "plaintext")
+                        .param("password", "pw123"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        mvc.perform(get(result.getResponse().getRedirectedUrl() + "/raw"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void publicPasteAppearsInPublicList() throws Exception {
         mvc.perform(post("/paste")
                         .with(csrf())

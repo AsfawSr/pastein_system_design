@@ -26,6 +26,7 @@
                   th:text="'· Expires ' + ${#temporals.format(paste.expiresAt, 'yyyy-MM-dd HH:mm')} + ' UTC'">expires</span>
             <span th:text="'· ' + ${paste.views} + ' views'">views</span>
             <span th:text="'· ' + ${paste.language}">language</span>
+            <span th:unless="${burned}">· <a th:href="@{/p/{id}/raw(id=${paste.id})}">Raw</a></span>
         </p>
         <pre><code th:classappend="'language-' + ${paste.language}" th:text="${paste.content}">content</code></pre>
         <p th:if="${canEdit}" class="owner-actions">

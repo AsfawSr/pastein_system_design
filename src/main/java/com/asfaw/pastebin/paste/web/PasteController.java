@@ -7,6 +7,9 @@ import com.asfaw.pastebin.paste.ViewOutcome;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 import java.util.List;
@@ -73,6 +77,20 @@ public class PasteController {
     @PostMapping("/p/{id}/unlock")
     public String unlock(@PathVariable String id, @RequestParam String password, Model model, Principal principal) {
         return render(service.view(id, password), id, model, principal);
+    }
+
+    // same view semantics as the HTML page: counts views and burns burn-after-read pastes
+    @GetMapping(value = "/p/{id}/raw", produces = MediaType.TEXT_PLAIN_VALUE)
+    @ResponseBody
+    public ResponseEntity<String> raw(@PathVariable String id) {
+        return switch (service.view(id, null)) {
+            case ViewOutcome.Viewed viewed -> ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(viewed.paste().getContent());
+            case ViewOutcome.PasswordRequired ignored -> ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("This paste is password-protected.");
+        };
     }
 
     @GetMapping("/p/{id}/edit")
