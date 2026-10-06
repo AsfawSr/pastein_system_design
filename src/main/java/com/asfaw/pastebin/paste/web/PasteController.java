@@ -1,8 +1,8 @@
 package com.asfaw.pastebin.paste.web;
 
 import com.asfaw.pastebin.paste.Paste;
-import com.asfaw.pastebin.paste.PasteNotFoundException;
 import com.asfaw.pastebin.paste.PasteService;
+import com.asfaw.pastebin.paste.ViewedPaste;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -30,15 +30,16 @@ public class PasteController {
         if (binding.hasErrors()) {
             return "index";
         }
-        Paste paste = service.create(form.getTitle(), form.getContent(), form.getExpiry().getDuration());
+        Paste paste = service.create(form.getTitle(), form.getContent(),
+                form.getExpiry().getDuration(), form.isBurnAfterRead());
         return "redirect:/p/" + paste.getId();
     }
 
     @GetMapping("/p/{id}")
     public String view(@PathVariable String id, Model model) {
-        Paste paste = service.find(id)
-                .orElseThrow(() -> new PasteNotFoundException(id));
-        model.addAttribute("paste", paste);
+        ViewedPaste viewed = service.view(id);
+        model.addAttribute("paste", viewed.paste());
+        model.addAttribute("burned", viewed.burned());
         return "paste/view";
     }
 }

@@ -27,6 +27,11 @@
                     th:value="${opt}" th:text="${opt.label}">Never</option>
         </select>
 
+        <label class="checkbox">
+            <input type="checkbox" th:field="*{burnAfterRead}">
+            Burn after read (paste is destroyed after the first view)
+        </label>
+
         <button type="submit">Create paste</button>
     </form>
 </main>

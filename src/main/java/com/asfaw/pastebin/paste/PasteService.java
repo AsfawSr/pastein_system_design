@@ -20,7 +20,7 @@ public class PasteService {
     private final Clock clock;
 
     @Transactional
-    public Paste create(String title, String content, Duration ttl) {
+    public Paste create(String title, String content, Duration ttl, boolean burnAfterRead) {
         Instant now = clock.instant();
         Paste paste = new Paste();
         paste.setId(nextFreeId());
@@ -28,7 +28,21 @@ public class PasteService {
         paste.setContent(content);
         paste.setCreatedAt(now);
         paste.setExpiresAt(ttl == null ? null : now.plus(ttl));
+        paste.setBurnAfterRead(burnAfterRead);
         return repository.save(paste);
+    }
+
+    @Transactional
+    public ViewedPaste view(String id) {
+        Paste paste = find(id).orElseThrow(() -> new PasteNotFoundException(id));
+        if (paste.isBurnAfterRead()) {
+            // re-fetch under row lock so concurrent readers can't both burn it
+            Paste locked = repository.findByIdForUpdate(id)
+                    .orElseThrow(() -> new PasteNotFoundException(id));
+            repository.delete(locked);
+            return new ViewedPaste(locked, true);
+        }
+        return new ViewedPaste(paste, false);
     }
 
     @Transactional(readOnly = true)

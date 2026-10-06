@@ -76,3 +76,13 @@ code { font-family: ui-monospace, Consolas, monospace; }
 a { color: var(--accent); }
 
 .error { color: #f23f43; font-size: 0.875rem; margin: 0; }
+
+.warn {
+    background: #3d2f1e;
+    border: 1px solid #a8742c;
+    color: #f0b353;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+}
+
+.checkbox { display: flex; align-items: center; gap: 0.5rem; }

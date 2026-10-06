@@ -12,6 +12,9 @@
 </header>
 <main>
     <article class="paste">
+        <p class="warn" th:if="${burned}">
+            This paste was set to burn after read — it has now been destroyed and cannot be viewed again.
+        </p>
         <h2 th:text="${paste.title != null ? paste.title : 'Untitled'}">Untitled</h2>
         <p class="meta">
             <span th:text="'Created ' + ${#temporals.format(paste.createdAt, 'yyyy-MM-dd HH:mm')} + ' UTC'">created</span>

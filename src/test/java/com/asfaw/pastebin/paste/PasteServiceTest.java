@@ -43,7 +43,7 @@ class PasteServiceTest {
         when(repository.existsById("abc12345")).thenReturn(false);
         when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Paste paste = service.create("my title", "hello world", null);
+        Paste paste = service.create("my title", "hello world", null, false);
 
         assertThat(paste.getId()).isEqualTo("abc12345");
         assertThat(paste.getTitle()).isEqualTo("my title");
@@ -58,7 +58,7 @@ class PasteServiceTest {
         when(repository.existsById("abc12345")).thenReturn(false);
         when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Paste paste = service.create(null, "content", Duration.ofHours(1));
+        Paste paste = service.create(null, "content", Duration.ofHours(1), false);
 
         assertThat(paste.getExpiresAt()).isEqualTo(NOW.plus(Duration.ofHours(1)));
     }
@@ -70,7 +70,7 @@ class PasteServiceTest {
         when(repository.existsById("free4567")).thenReturn(false);
         when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Paste paste = service.create(null, "content", null);
+        Paste paste = service.create(null, "content", null, false);
 
         assertThat(paste.getId()).isEqualTo("free4567");
     }
@@ -80,7 +80,7 @@ class PasteServiceTest {
         when(idGenerator.generate()).thenReturn("same1234");
         when(repository.existsById("same1234")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.create(null, "content", null))
+        assertThatThrownBy(() -> service.create(null, "content", null, false))
                 .isInstanceOf(IllegalStateException.class);
         verify(repository, never()).save(any());
     }
@@ -115,6 +115,51 @@ class PasteServiceTest {
         when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
 
         assertThat(service.find("abc12345")).isEmpty();
+    }
+
+    @Test
+    void viewOfNormalPasteDoesNotDelete() {
+        Paste stored = pasteExpiringAt(null);
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+
+        ViewedPaste viewed = service.view("abc12345");
+
+        assertThat(viewed.burned()).isFalse();
+        assertThat(viewed.paste()).isSameAs(stored);
+        verify(repository, never()).delete(any());
+    }
+
+    @Test
+    void viewOfBurnPasteDeletesUnderLockAndReportsBurned() {
+        Paste stored = pasteExpiringAt(null);
+        stored.setBurnAfterRead(true);
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.of(stored));
+
+        ViewedPaste viewed = service.view("abc12345");
+
+        assertThat(viewed.burned()).isTrue();
+        verify(repository).delete(stored);
+    }
+
+    @Test
+    void viewThrowsWhenConcurrentReaderAlreadyBurnedIt() {
+        Paste stored = pasteExpiringAt(null);
+        stored.setBurnAfterRead(true);
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.view("abc12345"))
+                .isInstanceOf(PasteNotFoundException.class);
+        verify(repository, never()).delete(any());
+    }
+
+    @Test
+    void viewThrowsForMissingPaste() {
+        when(repository.findById("missing1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.view("missing1"))
+                .isInstanceOf(PasteNotFoundException.class);
     }
 
     private Paste pasteExpiringAt(Instant expiresAt) {

@@ -31,4 +31,7 @@ public class Paste {
     private Instant createdAt;
 
     private Instant expiresAt;
+
+    @Column(nullable = false)
+    private boolean burnAfterRead;
 }

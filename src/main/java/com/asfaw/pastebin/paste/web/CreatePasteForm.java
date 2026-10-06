@@ -19,4 +19,6 @@ public class CreatePasteForm {
 
     @NotNull
     private ExpiryOption expiry = ExpiryOption.NEVER;
+
+    private boolean burnAfterRead;
 }
