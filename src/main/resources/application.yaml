@@ -10,9 +10,14 @@ spring:
       ddl-auto: validate
     open-in-view: false
   cache:
+    type: redis
     cache-names: pastes
-    caffeine:
-      spec: maximumSize=10000,expireAfterWrite=10m,recordStats
+    redis:
+      time-to-live: 10m
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 pastebin:
   cleanup:

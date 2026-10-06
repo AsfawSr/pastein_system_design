@@ -18,6 +18,16 @@ services:
       timeout: 3s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   app:
     build: .
     profiles: ["full"]
@@ -28,8 +38,11 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pastebin
       SPRING_DATASOURCE_USERNAME: pastebin
       SPRING_DATASOURCE_PASSWORD: pastebin
+      SPRING_DATA_REDIS_HOST: redis
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

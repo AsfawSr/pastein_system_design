@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 @Entity
@@ -21,7 +22,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Paste {
+public class Paste implements Serializable {
 
     @Id
     @Column(length = 16)
