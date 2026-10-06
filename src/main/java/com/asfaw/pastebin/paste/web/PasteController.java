@@ -30,7 +30,7 @@ public class PasteController {
         if (binding.hasErrors()) {
             return "index";
         }
-        Paste paste = service.create(form.getTitle(), form.getContent());
+        Paste paste = service.create(form.getTitle(), form.getContent(), form.getExpiry().getDuration());
         return "redirect:/p/" + paste.getId();
     }
 

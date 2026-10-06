@@ -29,4 +29,6 @@ public class Paste {
 
     @Column(nullable = false)
     private Instant createdAt;
+
+    private Instant expiresAt;
 }

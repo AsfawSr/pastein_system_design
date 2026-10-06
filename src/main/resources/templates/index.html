@@ -21,6 +21,12 @@
                   placeholder="Paste your text here..."></textarea>
         <p class="error" th:if="${#fields.hasErrors('content')}" th:errors="*{content}">content error</p>
 
+        <label for="expiry">Expires</label>
+        <select id="expiry" th:field="*{expiry}">
+            <option th:each="opt : ${T(com.asfaw.pastebin.paste.web.ExpiryOption).values()}"
+                    th:value="${opt}" th:text="${opt.label}">Never</option>
+        </select>
+
         <button type="submit">Create paste</button>
     </form>
 </main>
