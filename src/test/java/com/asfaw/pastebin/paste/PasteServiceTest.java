@@ -29,6 +29,9 @@ class PasteServiceTest {
     private PasteRepository repository;
 
     @Mock
+    private PasteFinder finder;
+
+    @Mock
     private IdGenerator idGenerator;
 
     @Mock
@@ -38,7 +41,7 @@ class PasteServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PasteService(repository, idGenerator, Clock.fixed(NOW, ZoneOffset.UTC), passwordEncoder);
+        service = new PasteService(repository, finder, idGenerator, Clock.fixed(NOW, ZoneOffset.UTC), passwordEncoder);
     }
 
     @Test
@@ -121,7 +124,7 @@ class PasteServiceTest {
     @Test
     void findReturnsPasteThatNeverExpires() {
         Paste stored = pasteExpiringAt(null);
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
 
         assertThat(service.find("abc12345")).containsSame(stored);
     }
@@ -129,7 +132,7 @@ class PasteServiceTest {
     @Test
     void findReturnsPasteBeforeExpiry() {
         Paste stored = pasteExpiringAt(NOW.plusSeconds(60));
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
 
         assertThat(service.find("abc12345")).containsSame(stored);
     }
@@ -137,7 +140,7 @@ class PasteServiceTest {
     @Test
     void findHidesExpiredPaste() {
         Paste stored = pasteExpiringAt(NOW.minusSeconds(1));
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
 
         assertThat(service.find("abc12345")).isEmpty();
     }
@@ -145,7 +148,7 @@ class PasteServiceTest {
     @Test
     void findHidesPasteExpiringExactlyNow() {
         Paste stored = pasteExpiringAt(NOW);
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
 
         assertThat(service.find("abc12345")).isEmpty();
     }
@@ -153,7 +156,7 @@ class PasteServiceTest {
     @Test
     void viewOfNormalPasteDoesNotDelete() {
         Paste stored = pasteExpiringAt(null);
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
 
         ViewOutcome outcome = service.view("abc12345", null);
 
@@ -164,7 +167,7 @@ class PasteServiceTest {
     @Test
     void viewIncrementsCounterAtomicallyInDatabase() {
         Paste stored = pasteExpiringAt(null);
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
 
         service.view("abc12345", null);
 
@@ -175,20 +178,21 @@ class PasteServiceTest {
     void viewOfBurnPasteDeletesUnderLockAndReportsBurned() {
         Paste stored = pasteExpiringAt(null);
         stored.setBurnAfterRead(true);
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
         when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.of(stored));
 
         ViewOutcome outcome = service.view("abc12345", null);
 
         assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, true));
         verify(repository).delete(stored);
+        verify(finder).evict("abc12345");
     }
 
     @Test
     void viewDoesNotCountBurnReads() {
         Paste stored = pasteExpiringAt(null);
         stored.setBurnAfterRead(true);
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
         when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.of(stored));
 
         service.view("abc12345", null);
@@ -200,7 +204,7 @@ class PasteServiceTest {
     void viewThrowsWhenConcurrentReaderAlreadyBurnedIt() {
         Paste stored = pasteExpiringAt(null);
         stored.setBurnAfterRead(true);
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
         when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.view("abc12345", null))
@@ -210,7 +214,7 @@ class PasteServiceTest {
 
     @Test
     void viewThrowsForMissingPaste() {
-        when(repository.findById("missing1")).thenReturn(Optional.empty());
+        when(finder.findById("missing1")).thenReturn(null);
 
         assertThatThrownBy(() -> service.view("missing1", null))
                 .isInstanceOf(PasteNotFoundException.class);
@@ -219,7 +223,7 @@ class PasteServiceTest {
     @Test
     void viewAsksForPasswordWhenProtectedAndNoneGiven() {
         Paste stored = protectedPaste();
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
 
         ViewOutcome outcome = service.view("abc12345", null);
 
@@ -230,7 +234,7 @@ class PasteServiceTest {
     @Test
     void viewFlagsWrongPasswordAttempt() {
         Paste stored = protectedPaste();
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
         when(passwordEncoder.matches("wrong", "$2a$hash")).thenReturn(false);
 
         ViewOutcome outcome = service.view("abc12345", "wrong");
@@ -241,7 +245,7 @@ class PasteServiceTest {
     @Test
     void viewUnlocksWithCorrectPassword() {
         Paste stored = protectedPaste();
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(finder.findById("abc12345")).thenReturn(stored);
         when(passwordEncoder.matches("s3cret", "$2a$hash")).thenReturn(true);
 
         ViewOutcome outcome = service.view("abc12345", "s3cret");

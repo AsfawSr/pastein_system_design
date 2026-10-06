@@ -18,6 +18,7 @@ public class PasteService {
     private static final int MAX_ID_ATTEMPTS = 5;
 
     private final PasteRepository repository;
+    private final PasteFinder finder;
     private final IdGenerator idGenerator;
     private final Clock clock;
     private final PasswordEncoder passwordEncoder;
@@ -62,6 +63,7 @@ public class PasteService {
             Paste locked = repository.findByIdForUpdate(id)
                     .orElseThrow(() -> new PasteNotFoundException(id));
             repository.delete(locked);
+            finder.evict(id);
             return new ViewOutcome.Viewed(locked, true);
         }
         repository.incrementViews(id);
@@ -70,7 +72,7 @@ public class PasteService {
 
     @Transactional(readOnly = true)
     public Optional<Paste> find(String id) {
-        return repository.findById(id).filter(p -> !isExpired(p));
+        return Optional.ofNullable(finder.findById(id)).filter(p -> !isExpired(p));
     }
 
     private boolean isExpired(Paste paste) {

@@ -9,6 +9,10 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  cache:
+    cache-names: pastes
+    caffeine:
+      spec: maximumSize=10000,expireAfterWrite=10m
 
 pastebin:
   cleanup:
