@@ -28,6 +28,13 @@
             <span th:text="'· ' + ${paste.language}">language</span>
         </p>
         <pre><code th:classappend="'language-' + ${paste.language}" th:text="${paste.content}">content</code></pre>
+        <p th:if="${canEdit}" class="owner-actions">
+            <a th:href="@{/p/{id}/edit(id=${paste.id})}">Edit</a>
+            <form th:action="@{/p/{id}/delete(id=${paste.id})}" method="post" class="inline"
+                  onsubmit="return confirm('Delete this paste?');">
+                <button type="submit" class="linklike">Delete</button>
+            </form>
+        </p>
     </article>
     <p><a th:href="@{/}">+ New paste</a></p>
 </main>

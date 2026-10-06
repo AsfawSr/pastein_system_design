@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,10 +80,45 @@ public class PasteService {
             repository.delete(locked);
             finder.evict(id);
             meterRegistry.counter("pastebin.pastes.burned").increment();
-            return new ViewOutcome.Viewed(locked, true);
+            return new ViewOutcome.Viewed(locked, true, ownerUsername(locked));
         }
         repository.incrementViews(id);
-        return new ViewOutcome.Viewed(paste, false);
+        return new ViewOutcome.Viewed(paste, false, ownerUsername(paste));
+    }
+
+    @Transactional
+    public Paste updateOwned(String id, String username, String title, String content, String language) {
+        Paste paste = requireOwned(id, username);
+        paste.setTitle(title);
+        paste.setContent(content);
+        paste.setLanguage(language == null || language.isBlank() ? "plaintext" : language);
+        finder.evict(id);
+        return paste;
+    }
+
+    @Transactional
+    public void deleteOwned(String id, String username) {
+        Paste paste = requireOwned(id, username);
+        repository.delete(paste);
+        finder.evict(id);
+    }
+
+    @Transactional(readOnly = true)
+    public Paste getOwned(String id, String username) {
+        return requireOwned(id, username);
+    }
+
+    private Paste requireOwned(String id, String username) {
+        Paste paste = repository.findById(id).orElseThrow(() -> new PasteNotFoundException(id));
+        String owner = ownerUsername(paste);
+        if (owner == null || !owner.equals(username)) {
+            throw new AccessDeniedException("You are not the owner of this paste");
+        }
+        return paste;
+    }
+
+    private String ownerUsername(Paste paste) {
+        return paste.getOwner() == null ? null : paste.getOwner().getUsername();
     }
 
     @Transactional(readOnly = true)

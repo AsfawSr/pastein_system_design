@@ -185,7 +185,7 @@ class PasteServiceTest {
 
         ViewOutcome outcome = service.view("abc12345", null);
 
-        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, false));
+        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, false, null));
         verify(repository, never()).delete(any());
     }
 
@@ -208,7 +208,7 @@ class PasteServiceTest {
 
         ViewOutcome outcome = service.view("abc12345", null);
 
-        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, true));
+        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, true, null));
         verify(repository).delete(stored);
         verify(finder).evict("abc12345");
     }
@@ -275,8 +275,59 @@ class PasteServiceTest {
 
         ViewOutcome outcome = service.view("abc12345", "s3cret");
 
-        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, false));
+        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, false, null));
         verify(repository).incrementViews("abc12345");
+    }
+
+    @Test
+    void updateOwnedChangesFieldsAndEvictsCache() {
+        Paste stored = pasteOwnedBy("asfaw");
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+
+        service.updateOwned("abc12345", "asfaw", "new title", "new content", "java");
+
+        assertThat(stored.getTitle()).isEqualTo("new title");
+        assertThat(stored.getContent()).isEqualTo("new content");
+        assertThat(stored.getLanguage()).isEqualTo("java");
+        verify(finder).evict("abc12345");
+    }
+
+    @Test
+    void updateOwnedRejectsNonOwner() {
+        Paste stored = pasteOwnedBy("asfaw");
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+
+        assertThatThrownBy(() -> service.updateOwned("abc12345", "intruder", "t", "c", null))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    }
+
+    @Test
+    void deleteOwnedRejectsAnonymousPaste() {
+        Paste stored = pasteExpiringAt(null); // no owner
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+
+        assertThatThrownBy(() -> service.deleteOwned("abc12345", "anyone"))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(repository, never()).delete(any());
+    }
+
+    @Test
+    void deleteOwnedDeletesAndEvictsForOwner() {
+        Paste stored = pasteOwnedBy("asfaw");
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+
+        service.deleteOwned("abc12345", "asfaw");
+
+        verify(repository).delete(stored);
+        verify(finder).evict("abc12345");
+    }
+
+    private Paste pasteOwnedBy(String username) {
+        Paste paste = pasteExpiringAt(null);
+        User owner = new User();
+        owner.setUsername(username);
+        paste.setOwner(owner);
+        return paste;
     }
 
     private void stubFreeId(String id) {

@@ -14,7 +14,7 @@ public class PasteFinder {
 
     @Cacheable(cacheNames = "pastes", unless = "#result == null || #result.burnAfterRead")
     public Paste findById(String id) {
-        return repository.findById(id).orElse(null);
+        return repository.findWithOwnerById(id).orElse(null);
     }
 
     @CacheEvict(cacheNames = "pastes")

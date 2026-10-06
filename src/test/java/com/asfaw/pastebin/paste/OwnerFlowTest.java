@@ -52,4 +52,68 @@ class OwnerFlowTest {
         mvc.perform(get("/mine"))
                 .andExpect(status().is3xxRedirection());
     }
+
+    @Test
+    void ownerCanEditAndNonOwnerGets403() throws Exception {
+        mvc.perform(post("/register")
+                        .with(csrf())
+                        .param("username", "editor1")
+                        .param("password", "longenoughpw")
+                        .param("confirmPassword", "longenoughpw"))
+                .andExpect(status().is3xxRedirection());
+
+        var result = mvc.perform(post("/paste")
+                        .with(user("editor1"))
+                        .with(csrf())
+                        .param("title", "editable")
+                        .param("content", "before edit")
+                        .param("expiry", "NEVER")
+                        .param("visibility", "UNLISTED")
+                        .param("language", "plaintext"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        String location = result.getResponse().getRedirectedUrl();
+
+        mvc.perform(post(location + "/edit")
+                        .with(user("editor1"))
+                        .with(csrf())
+                        .param("title", "editable")
+                        .param("content", "after edit")
+                        .param("language", "plaintext"))
+                .andExpect(status().is3xxRedirection());
+
+        mvc.perform(get(location))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("after edit")));
+
+        mvc.perform(get(location + "/edit").with(user("someoneelse")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ownerCanDeleteTheirPaste() throws Exception {
+        mvc.perform(post("/register")
+                        .with(csrf())
+                        .param("username", "deleter1")
+                        .param("password", "longenoughpw")
+                        .param("confirmPassword", "longenoughpw"))
+                .andExpect(status().is3xxRedirection());
+
+        var result = mvc.perform(post("/paste")
+                        .with(user("deleter1"))
+                        .with(csrf())
+                        .param("title", "doomed")
+                        .param("content", "delete me")
+                        .param("expiry", "NEVER")
+                        .param("visibility", "UNLISTED")
+                        .param("language", "plaintext"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        String location = result.getResponse().getRedirectedUrl();
+
+        mvc.perform(post(location + "/delete").with(user("deleter1")).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        mvc.perform(get(location))
+                .andExpect(status().isNotFound());
+    }
 }

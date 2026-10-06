@@ -3,6 +3,7 @@ package com.asfaw.pastebin.paste;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,6 +14,10 @@ import java.time.Instant;
 import java.util.Optional;
 
 public interface PasteRepository extends JpaRepository<Paste, String> {
+
+    // owner loaded eagerly so cached detached entities can expose it safely
+    @EntityGraph(attributePaths = "owner")
+    Optional<Paste> findWithOwnerById(String id);
 
     @Modifying
     @Query("delete from Paste p where p.expiresAt is not null and p.expiresAt <= :now")

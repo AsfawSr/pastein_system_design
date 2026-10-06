@@ -7,6 +7,7 @@ import com.asfaw.pastebin.paste.ViewOutcome;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -65,20 +66,58 @@ public class PasteController {
     }
 
     @GetMapping("/p/{id}")
-    public String view(@PathVariable String id, Model model) {
-        return render(service.view(id, null), id, model);
+    public String view(@PathVariable String id, Model model, Principal principal) {
+        return render(service.view(id, null), id, model, principal);
     }
 
     @PostMapping("/p/{id}/unlock")
-    public String unlock(@PathVariable String id, @RequestParam String password, Model model) {
-        return render(service.view(id, password), id, model);
+    public String unlock(@PathVariable String id, @RequestParam String password, Model model, Principal principal) {
+        return render(service.view(id, password), id, model, principal);
     }
 
-    private String render(ViewOutcome outcome, String id, Model model) {
+    @GetMapping("/p/{id}/edit")
+    @PreAuthorize("isAuthenticated()")
+    public String editForm(@PathVariable String id, Model model, Principal principal) {
+        Paste paste = service.getOwned(id, principal.getName());
+        EditPasteForm form = new EditPasteForm();
+        form.setTitle(paste.getTitle());
+        form.setContent(paste.getContent());
+        form.setLanguage(paste.getLanguage());
+        model.addAttribute("form", form);
+        model.addAttribute("pasteId", id);
+        model.addAttribute("languages", LANGUAGES);
+        return "paste/edit";
+    }
+
+    @PostMapping("/p/{id}/edit")
+    @PreAuthorize("isAuthenticated()")
+    public String edit(@PathVariable String id, @Valid @ModelAttribute("form") EditPasteForm form,
+                       BindingResult binding, Model model, Principal principal) {
+        if (binding.hasErrors()) {
+            model.addAttribute("pasteId", id);
+            model.addAttribute("languages", LANGUAGES);
+            return "paste/edit";
+        }
+        service.updateOwned(id, principal.getName(), form.getTitle(), form.getContent(), form.getLanguage());
+        return "redirect:/p/" + id;
+    }
+
+    @PostMapping("/p/{id}/delete")
+    @PreAuthorize("isAuthenticated()")
+    public String delete(@PathVariable String id, Principal principal) {
+        service.deleteOwned(id, principal.getName());
+        return "redirect:/mine";
+    }
+
+    private String render(ViewOutcome outcome, String id, Model model, Principal principal) {
         return switch (outcome) {
             case ViewOutcome.Viewed viewed -> {
                 model.addAttribute("paste", viewed.paste());
                 model.addAttribute("burned", viewed.burned());
+                model.addAttribute("canEdit", !viewed.burned()
+                        && viewed.ownerUsername() != null
+                        && principal != null
+                        && viewed.ownerUsername().equals(principal.getName()));
                 yield "paste/view";
             }
             case ViewOutcome.PasswordRequired required -> {
