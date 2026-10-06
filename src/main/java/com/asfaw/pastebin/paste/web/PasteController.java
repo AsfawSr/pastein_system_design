@@ -38,15 +38,23 @@ public class PasteController {
     }
 
     @PostMapping("/paste")
-    public String create(@Valid @ModelAttribute("form") CreatePasteForm form, BindingResult binding, Model model) {
+    public String create(@Valid @ModelAttribute("form") CreatePasteForm form, BindingResult binding,
+                         Model model, Principal principal) {
         if (binding.hasErrors()) {
             model.addAttribute("languages", LANGUAGES);
             return "index";
         }
         Paste paste = service.create(new CreatePasteCommand(form.getTitle(), form.getContent(),
                 form.getExpiry().getDuration(), form.isBurnAfterRead(), form.getPassword(),
-                form.getVisibility(), form.getLanguage()));
+                form.getVisibility(), form.getLanguage()), principal == null ? null : principal.getName());
         return "redirect:/p/" + paste.getId();
+    }
+
+    @GetMapping("/mine")
+    public String myPastes(@RequestParam(defaultValue = "0") int page, Model model, Principal principal) {
+        Page<Paste> pastes = service.listOwnedBy(principal.getName(), Math.max(page, 0), 20);
+        model.addAttribute("pastes", pastes);
+        return "paste/mine";
     }
 
     @GetMapping("/public")

@@ -37,4 +37,7 @@ public interface PasteRepository extends JpaRepository<Paste, String> {
     Page<Paste> findVisible(@Param("visibility") PasteVisibility visibility,
                             @Param("now") Instant now,
                             Pageable pageable);
+
+    @Query("select p from Paste p where p.owner.username = :username order by p.createdAt desc")
+    Page<Paste> findByOwnerUsername(@Param("username") String username, Pageable pageable);
 }

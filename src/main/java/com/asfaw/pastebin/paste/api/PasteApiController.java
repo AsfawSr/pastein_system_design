@@ -27,7 +27,7 @@ public class PasteApiController {
 
     @PostMapping
     public ResponseEntity<PasteResponse> create(@Valid @RequestBody CreatePasteRequest request) {
-        Paste paste = service.create(request.toCommand());
+        Paste paste = service.create(request.toCommand(), null);
         return ResponseEntity
                 .created(URI.create("/api/pastes/" + paste.getId()))
                 .body(PasteResponse.from(paste, false));

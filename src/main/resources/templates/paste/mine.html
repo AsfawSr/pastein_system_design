@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My pastes — Pastebin</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header>
+    <h1><a th:href="@{/}">Pastebin</a></h1>
+    <nav><a th:href="@{/public}">Public pastes</a></nav>
+</header>
+<main>
+    <h2>My pastes</h2>
+    <p th:if="${pastes.isEmpty()}">You haven't created any pastes while logged in yet.</p>
+    <table th:unless="${pastes.isEmpty()}">
+        <thead>
+        <tr>
+            <th>Title</th>
+            <th>Visibility</th>
+            <th>Created (UTC)</th>
+            <th>Expires (UTC)</th>
+            <th>Views</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="p : ${pastes.content}">
+            <td><a th:href="@{/p/{id}(id=${p.id})}"
+                   th:text="${p.title != null ? p.title : 'Untitled'}">title</a></td>
+            <td th:text="${p.visibility}">UNLISTED</td>
+            <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd HH:mm')}">created</td>
+            <td th:text="${p.expiresAt != null ? #temporals.format(p.expiresAt, 'yyyy-MM-dd HH:mm') : 'never'}">expires</td>
+            <td th:text="${p.views}">0</td>
+        </tr>
+        </tbody>
+    </table>
+    <nav class="pager" th:unless="${pastes.isEmpty()}">
+        <a th:if="${pastes.hasPrevious()}" th:href="@{/mine(page=${pastes.number - 1})}">&laquo; Newer</a>
+        <span th:text="'Page ' + ${pastes.number + 1} + ' of ' + ${pastes.totalPages}">page</span>
+        <a th:if="${pastes.hasNext()}" th:href="@{/mine(page=${pastes.number + 1})}">Older &raquo;</a>
+    </nav>
+    <p><a th:href="@{/}">+ New paste</a></p>
+</main>
+</body>
+</html>

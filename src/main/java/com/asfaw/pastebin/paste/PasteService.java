@@ -1,5 +1,6 @@
 package com.asfaw.pastebin.paste;
 
+import com.asfaw.pastebin.user.UserRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,9 +25,10 @@ public class PasteService {
     private final Clock clock;
     private final PasswordEncoder passwordEncoder;
     private final MeterRegistry meterRegistry;
+    private final UserRepository userRepository;
 
     @Transactional
-    public Paste create(CreatePasteCommand command) {
+    public Paste create(CreatePasteCommand command, String ownerUsername) {
         Instant now = clock.instant();
         Paste paste = new Paste();
         paste.setId(nextFreeId());
@@ -41,6 +43,9 @@ public class PasteService {
         if (command.password() != null && !command.password().isBlank()) {
             paste.setPasswordHash(passwordEncoder.encode(command.password()));
         }
+        if (ownerUsername != null) {
+            userRepository.findByUsername(ownerUsername).ifPresent(paste::setOwner);
+        }
         Paste saved = repository.save(paste);
         meterRegistry.counter("pastebin.pastes.created", "visibility", saved.getVisibility().name()).increment();
         return saved;
@@ -49,6 +54,11 @@ public class PasteService {
     @Transactional(readOnly = true)
     public Page<Paste> listPublic(int page, int size) {
         return repository.findVisible(PasteVisibility.PUBLIC, clock.instant(), PageRequest.of(page, size));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Paste> listOwnedBy(String username, int page, int size) {
+        return repository.findByOwnerUsername(username, PageRequest.of(page, size));
     }
 
     @Transactional

@@ -13,8 +13,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // pastes stay anonymous-friendly; login is optional for now
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                // pastes stay anonymous-friendly; only personal pages require login
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/mine").authenticated()
+                        .anyRequest().permitAll())
                 // the JSON API is token/stateless territory, not browser forms
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
                 .formLogin(login -> login

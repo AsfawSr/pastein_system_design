@@ -16,6 +16,7 @@
             <a th:href="@{/register}">Register</a>
         </span>
         <span th:if="${username != null}" class="userbox">
+            <a th:href="@{/mine}">My pastes</a>
             <span th:text="${username}">user</span>
             <form th:action="@{/logout}" method="post" class="inline">
                 <button type="submit" class="linklike">Logout</button>

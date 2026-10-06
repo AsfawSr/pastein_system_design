@@ -7,6 +7,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.asfaw.pastebin.user.User;
+import com.asfaw.pastebin.user.UserRepository;
+
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import java.time.Clock;
@@ -39,6 +42,9 @@ class PasteServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private UserRepository userRepository;
+
     private PasteService service;
 
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
@@ -46,14 +52,14 @@ class PasteServiceTest {
     @BeforeEach
     void setUp() {
         service = new PasteService(repository, finder, idGenerator, Clock.fixed(NOW, ZoneOffset.UTC),
-                passwordEncoder, meterRegistry);
+                passwordEncoder, meterRegistry, userRepository);
     }
 
     @Test
     void createAssignsIdTitleContentAndTimestamp() {
         stubFreeId("abc12345");
 
-        Paste paste = service.create(new CreatePasteCommand("my title", "hello world", null, false, null, PasteVisibility.UNLISTED, "java"));
+        Paste paste = service.create(new CreatePasteCommand("my title", "hello world", null, false, null, PasteVisibility.UNLISTED, "java"), null);
 
         assertThat(paste.getId()).isEqualTo("abc12345");
         assertThat(paste.getTitle()).isEqualTo("my title");
@@ -63,14 +69,27 @@ class PasteServiceTest {
         assertThat(paste.getPasswordHash()).isNull();
         assertThat(paste.getVisibility()).isEqualTo(PasteVisibility.UNLISTED);
         assertThat(paste.getLanguage()).isEqualTo("java");
+        assertThat(paste.getOwner()).isNull();
         assertThat(meterRegistry.counter("pastebin.pastes.created", "visibility", "UNLISTED").count()).isEqualTo(1.0);
+    }
+
+    @Test
+    void createLinksOwnerWhenUsernameGiven() {
+        stubFreeId("abc12345");
+        User owner = new User();
+        owner.setUsername("asfaw");
+        when(userRepository.findByUsername("asfaw")).thenReturn(Optional.of(owner));
+
+        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.UNLISTED, null), "asfaw");
+
+        assertThat(paste.getOwner()).isSameAs(owner);
     }
 
     @Test
     void createDefaultsLanguageToPlaintext() {
         stubFreeId("abc12345");
 
-        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.UNLISTED, null));
+        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.UNLISTED, null), null);
 
         assertThat(paste.getLanguage()).isEqualTo("plaintext");
     }
@@ -79,7 +98,7 @@ class PasteServiceTest {
     void createComputesExpiresAtFromTtl() {
         stubFreeId("abc12345");
 
-        Paste paste = service.create(new CreatePasteCommand(null, "content", Duration.ofHours(1), false, null, PasteVisibility.UNLISTED, null));
+        Paste paste = service.create(new CreatePasteCommand(null, "content", Duration.ofHours(1), false, null, PasteVisibility.UNLISTED, null), null);
 
         assertThat(paste.getExpiresAt()).isEqualTo(NOW.plus(Duration.ofHours(1)));
     }
@@ -89,7 +108,7 @@ class PasteServiceTest {
         stubFreeId("abc12345");
         when(passwordEncoder.encode("s3cret")).thenReturn("$2a$hash");
 
-        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, "s3cret", PasteVisibility.UNLISTED, null));
+        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, "s3cret", PasteVisibility.UNLISTED, null), null);
 
         assertThat(paste.getPasswordHash()).isEqualTo("$2a$hash");
     }
@@ -98,7 +117,7 @@ class PasteServiceTest {
     void createTreatsBlankPasswordAsNoPassword() {
         stubFreeId("abc12345");
 
-        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, "   ", PasteVisibility.UNLISTED, null));
+        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, "   ", PasteVisibility.UNLISTED, null), null);
 
         assertThat(paste.getPasswordHash()).isNull();
         verify(passwordEncoder, never()).encode(any());
@@ -111,7 +130,7 @@ class PasteServiceTest {
         when(repository.existsById("free4567")).thenReturn(false);
         when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.PUBLIC, null));
+        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.PUBLIC, null), null);
 
         assertThat(paste.getId()).isEqualTo("free4567");
         assertThat(paste.getVisibility()).isEqualTo(PasteVisibility.PUBLIC);
@@ -122,7 +141,7 @@ class PasteServiceTest {
         when(idGenerator.generate()).thenReturn("same1234");
         when(repository.existsById("same1234")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.UNLISTED, null)))
+        assertThatThrownBy(() -> service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.UNLISTED, null), null))
                 .isInstanceOf(IllegalStateException.class);
         verify(repository, never()).save(any());
     }
