@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -24,19 +23,18 @@ public class PasteService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public Paste create(String title, String content, Duration ttl, boolean burnAfterRead,
-                        String rawPassword, PasteVisibility visibility) {
+    public Paste create(CreatePasteCommand command) {
         Instant now = clock.instant();
         Paste paste = new Paste();
         paste.setId(nextFreeId());
-        paste.setTitle(title);
-        paste.setContent(content);
+        paste.setTitle(command.title());
+        paste.setContent(command.content());
         paste.setCreatedAt(now);
-        paste.setExpiresAt(ttl == null ? null : now.plus(ttl));
-        paste.setBurnAfterRead(burnAfterRead);
-        paste.setVisibility(visibility);
-        if (rawPassword != null && !rawPassword.isBlank()) {
-            paste.setPasswordHash(passwordEncoder.encode(rawPassword));
+        paste.setExpiresAt(command.ttl() == null ? null : now.plus(command.ttl()));
+        paste.setBurnAfterRead(command.burnAfterRead());
+        paste.setVisibility(command.visibility());
+        if (command.password() != null && !command.password().isBlank()) {
+            paste.setPasswordHash(passwordEncoder.encode(command.password()));
         }
         return repository.save(paste);
     }

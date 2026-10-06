@@ -1,5 +1,6 @@
 package com.asfaw.pastebin.paste.web;
 
+import com.asfaw.pastebin.paste.CreatePasteCommand;
 import com.asfaw.pastebin.paste.Paste;
 import com.asfaw.pastebin.paste.PasteService;
 import com.asfaw.pastebin.paste.ViewOutcome;
@@ -32,9 +33,9 @@ public class PasteController {
         if (binding.hasErrors()) {
             return "index";
         }
-        Paste paste = service.create(form.getTitle(), form.getContent(),
+        Paste paste = service.create(new CreatePasteCommand(form.getTitle(), form.getContent(),
                 form.getExpiry().getDuration(), form.isBurnAfterRead(), form.getPassword(),
-                form.getVisibility());
+                form.getVisibility()));
         return "redirect:/p/" + paste.getId();
     }
 

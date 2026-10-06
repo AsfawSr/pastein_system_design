@@ -45,7 +45,7 @@ class PasteServiceTest {
     void createAssignsIdTitleContentAndTimestamp() {
         stubFreeId("abc12345");
 
-        Paste paste = service.create("my title", "hello world", null, false, null, PasteVisibility.UNLISTED);
+        Paste paste = service.create(new CreatePasteCommand("my title", "hello world", null, false, null, PasteVisibility.UNLISTED));
 
         assertThat(paste.getId()).isEqualTo("abc12345");
         assertThat(paste.getTitle()).isEqualTo("my title");
@@ -60,7 +60,7 @@ class PasteServiceTest {
     void createComputesExpiresAtFromTtl() {
         stubFreeId("abc12345");
 
-        Paste paste = service.create(null, "content", Duration.ofHours(1), false, null, PasteVisibility.UNLISTED);
+        Paste paste = service.create(new CreatePasteCommand(null, "content", Duration.ofHours(1), false, null, PasteVisibility.UNLISTED));
 
         assertThat(paste.getExpiresAt()).isEqualTo(NOW.plus(Duration.ofHours(1)));
     }
@@ -70,7 +70,7 @@ class PasteServiceTest {
         stubFreeId("abc12345");
         when(passwordEncoder.encode("s3cret")).thenReturn("$2a$hash");
 
-        Paste paste = service.create(null, "content", null, false, "s3cret", PasteVisibility.UNLISTED);
+        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, "s3cret", PasteVisibility.UNLISTED));
 
         assertThat(paste.getPasswordHash()).isEqualTo("$2a$hash");
     }
@@ -79,7 +79,7 @@ class PasteServiceTest {
     void createTreatsBlankPasswordAsNoPassword() {
         stubFreeId("abc12345");
 
-        Paste paste = service.create(null, "content", null, false, "   ", PasteVisibility.UNLISTED);
+        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, "   ", PasteVisibility.UNLISTED));
 
         assertThat(paste.getPasswordHash()).isNull();
         verify(passwordEncoder, never()).encode(any());
@@ -92,7 +92,7 @@ class PasteServiceTest {
         when(repository.existsById("free4567")).thenReturn(false);
         when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Paste paste = service.create(null, "content", null, false, null, PasteVisibility.PUBLIC);
+        Paste paste = service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.PUBLIC));
 
         assertThat(paste.getId()).isEqualTo("free4567");
         assertThat(paste.getVisibility()).isEqualTo(PasteVisibility.PUBLIC);
@@ -103,7 +103,7 @@ class PasteServiceTest {
         when(idGenerator.generate()).thenReturn("same1234");
         when(repository.existsById("same1234")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.create(null, "content", null, false, null, PasteVisibility.UNLISTED))
+        assertThatThrownBy(() -> service.create(new CreatePasteCommand(null, "content", null, false, null, PasteVisibility.UNLISTED)))
                 .isInstanceOf(IllegalStateException.class);
         verify(repository, never()).save(any());
     }

@@ -6,7 +6,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ControllerAdvice
+// HTML error pages for the MVC controllers only; the API package has its own ProblemDetail advice
+@ControllerAdvice(basePackages = "com.asfaw.pastebin.paste.web")
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(PasteNotFoundException.class)
