@@ -32,6 +32,11 @@
             Burn after read (paste is destroyed after the first view)
         </label>
 
+        <label for="password">Password (optional)</label>
+        <input id="password" type="password" th:field="*{password}"
+               placeholder="Leave empty for no password">
+        <p class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">password error</p>
+
         <button type="submit">Create paste</button>
     </form>
 </main>

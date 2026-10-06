@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -30,37 +31,57 @@ class PasteServiceTest {
     @Mock
     private IdGenerator idGenerator;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     private PasteService service;
 
     @BeforeEach
     void setUp() {
-        service = new PasteService(repository, idGenerator, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new PasteService(repository, idGenerator, Clock.fixed(NOW, ZoneOffset.UTC), passwordEncoder);
     }
 
     @Test
     void createAssignsIdTitleContentAndTimestamp() {
-        when(idGenerator.generate()).thenReturn("abc12345");
-        when(repository.existsById("abc12345")).thenReturn(false);
-        when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
+        stubFreeId("abc12345");
 
-        Paste paste = service.create("my title", "hello world", null, false);
+        Paste paste = service.create("my title", "hello world", null, false, null);
 
         assertThat(paste.getId()).isEqualTo("abc12345");
         assertThat(paste.getTitle()).isEqualTo("my title");
         assertThat(paste.getContent()).isEqualTo("hello world");
         assertThat(paste.getCreatedAt()).isEqualTo(NOW);
         assertThat(paste.getExpiresAt()).isNull();
+        assertThat(paste.getPasswordHash()).isNull();
     }
 
     @Test
     void createComputesExpiresAtFromTtl() {
-        when(idGenerator.generate()).thenReturn("abc12345");
-        when(repository.existsById("abc12345")).thenReturn(false);
-        when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
+        stubFreeId("abc12345");
 
-        Paste paste = service.create(null, "content", Duration.ofHours(1), false);
+        Paste paste = service.create(null, "content", Duration.ofHours(1), false, null);
 
         assertThat(paste.getExpiresAt()).isEqualTo(NOW.plus(Duration.ofHours(1)));
+    }
+
+    @Test
+    void createHashesPasswordInsteadOfStoringPlaintext() {
+        stubFreeId("abc12345");
+        when(passwordEncoder.encode("s3cret")).thenReturn("$2a$hash");
+
+        Paste paste = service.create(null, "content", null, false, "s3cret");
+
+        assertThat(paste.getPasswordHash()).isEqualTo("$2a$hash");
+    }
+
+    @Test
+    void createTreatsBlankPasswordAsNoPassword() {
+        stubFreeId("abc12345");
+
+        Paste paste = service.create(null, "content", null, false, "   ");
+
+        assertThat(paste.getPasswordHash()).isNull();
+        verify(passwordEncoder, never()).encode(any());
     }
 
     @Test
@@ -70,7 +91,7 @@ class PasteServiceTest {
         when(repository.existsById("free4567")).thenReturn(false);
         when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Paste paste = service.create(null, "content", null, false);
+        Paste paste = service.create(null, "content", null, false, null);
 
         assertThat(paste.getId()).isEqualTo("free4567");
     }
@@ -80,7 +101,7 @@ class PasteServiceTest {
         when(idGenerator.generate()).thenReturn("same1234");
         when(repository.existsById("same1234")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.create(null, "content", null, false))
+        assertThatThrownBy(() -> service.create(null, "content", null, false, null))
                 .isInstanceOf(IllegalStateException.class);
         verify(repository, never()).save(any());
     }
@@ -122,10 +143,9 @@ class PasteServiceTest {
         Paste stored = pasteExpiringAt(null);
         when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
 
-        ViewedPaste viewed = service.view("abc12345");
+        ViewOutcome outcome = service.view("abc12345", null);
 
-        assertThat(viewed.burned()).isFalse();
-        assertThat(viewed.paste()).isSameAs(stored);
+        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, false));
         verify(repository, never()).delete(any());
     }
 
@@ -134,21 +154,9 @@ class PasteServiceTest {
         Paste stored = pasteExpiringAt(null);
         when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
 
-        service.view("abc12345");
+        service.view("abc12345", null);
 
         verify(repository).incrementViews("abc12345");
-    }
-
-    @Test
-    void viewDoesNotCountBurnReads() {
-        Paste stored = pasteExpiringAt(null);
-        stored.setBurnAfterRead(true);
-        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
-        when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.of(stored));
-
-        service.view("abc12345");
-
-        verify(repository, never()).incrementViews(any());
     }
 
     @Test
@@ -158,10 +166,22 @@ class PasteServiceTest {
         when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
         when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.of(stored));
 
-        ViewedPaste viewed = service.view("abc12345");
+        ViewOutcome outcome = service.view("abc12345", null);
 
-        assertThat(viewed.burned()).isTrue();
+        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, true));
         verify(repository).delete(stored);
+    }
+
+    @Test
+    void viewDoesNotCountBurnReads() {
+        Paste stored = pasteExpiringAt(null);
+        stored.setBurnAfterRead(true);
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.of(stored));
+
+        service.view("abc12345", null);
+
+        verify(repository, never()).incrementViews(any());
     }
 
     @Test
@@ -171,7 +191,7 @@ class PasteServiceTest {
         when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
         when(repository.findByIdForUpdate("abc12345")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.view("abc12345"))
+        assertThatThrownBy(() -> service.view("abc12345", null))
                 .isInstanceOf(PasteNotFoundException.class);
         verify(repository, never()).delete(any());
     }
@@ -180,8 +200,48 @@ class PasteServiceTest {
     void viewThrowsForMissingPaste() {
         when(repository.findById("missing1")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.view("missing1"))
+        assertThatThrownBy(() -> service.view("missing1", null))
                 .isInstanceOf(PasteNotFoundException.class);
+    }
+
+    @Test
+    void viewAsksForPasswordWhenProtectedAndNoneGiven() {
+        Paste stored = protectedPaste();
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+
+        ViewOutcome outcome = service.view("abc12345", null);
+
+        assertThat(outcome).isEqualTo(new ViewOutcome.PasswordRequired(false));
+        verify(repository, never()).incrementViews(any());
+    }
+
+    @Test
+    void viewFlagsWrongPasswordAttempt() {
+        Paste stored = protectedPaste();
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(passwordEncoder.matches("wrong", "$2a$hash")).thenReturn(false);
+
+        ViewOutcome outcome = service.view("abc12345", "wrong");
+
+        assertThat(outcome).isEqualTo(new ViewOutcome.PasswordRequired(true));
+    }
+
+    @Test
+    void viewUnlocksWithCorrectPassword() {
+        Paste stored = protectedPaste();
+        when(repository.findById("abc12345")).thenReturn(Optional.of(stored));
+        when(passwordEncoder.matches("s3cret", "$2a$hash")).thenReturn(true);
+
+        ViewOutcome outcome = service.view("abc12345", "s3cret");
+
+        assertThat(outcome).isEqualTo(new ViewOutcome.Viewed(stored, false));
+        verify(repository).incrementViews("abc12345");
+    }
+
+    private void stubFreeId(String id) {
+        when(idGenerator.generate()).thenReturn(id);
+        when(repository.existsById(id)).thenReturn(false);
+        when(repository.save(any(Paste.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     private Paste pasteExpiringAt(Instant expiresAt) {
@@ -190,6 +250,12 @@ class PasteServiceTest {
         paste.setContent("content");
         paste.setCreatedAt(NOW.minusSeconds(3600));
         paste.setExpiresAt(expiresAt);
+        return paste;
+    }
+
+    private Paste protectedPaste() {
+        Paste paste = pasteExpiringAt(null);
+        paste.setPasswordHash("$2a$hash");
         return paste;
     }
 }

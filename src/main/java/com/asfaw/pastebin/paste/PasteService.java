@@ -1,6 +1,7 @@
 package com.asfaw.pastebin.paste;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +19,10 @@ public class PasteService {
     private final PasteRepository repository;
     private final IdGenerator idGenerator;
     private final Clock clock;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public Paste create(String title, String content, Duration ttl, boolean burnAfterRead) {
+    public Paste create(String title, String content, Duration ttl, boolean burnAfterRead, String rawPassword) {
         Instant now = clock.instant();
         Paste paste = new Paste();
         paste.setId(nextFreeId());
@@ -29,21 +31,32 @@ public class PasteService {
         paste.setCreatedAt(now);
         paste.setExpiresAt(ttl == null ? null : now.plus(ttl));
         paste.setBurnAfterRead(burnAfterRead);
+        if (rawPassword != null && !rawPassword.isBlank()) {
+            paste.setPasswordHash(passwordEncoder.encode(rawPassword));
+        }
         return repository.save(paste);
     }
 
     @Transactional
-    public ViewedPaste view(String id) {
+    public ViewOutcome view(String id, String rawPassword) {
         Paste paste = find(id).orElseThrow(() -> new PasteNotFoundException(id));
+        if (paste.getPasswordHash() != null) {
+            if (rawPassword == null || rawPassword.isBlank()) {
+                return new ViewOutcome.PasswordRequired(false);
+            }
+            if (!passwordEncoder.matches(rawPassword, paste.getPasswordHash())) {
+                return new ViewOutcome.PasswordRequired(true);
+            }
+        }
         if (paste.isBurnAfterRead()) {
             // re-fetch under row lock so concurrent readers can't both burn it
             Paste locked = repository.findByIdForUpdate(id)
                     .orElseThrow(() -> new PasteNotFoundException(id));
             repository.delete(locked);
-            return new ViewedPaste(locked, true);
+            return new ViewOutcome.Viewed(locked, true);
         }
         repository.incrementViews(id);
-        return new ViewedPaste(paste, false);
+        return new ViewOutcome.Viewed(paste, false);
     }
 
     @Transactional(readOnly = true)

@@ -37,4 +37,7 @@ public class Paste {
 
     @Column(nullable = false)
     private long views;
+
+    @Column(length = 100)
+    private String passwordHash;
 }

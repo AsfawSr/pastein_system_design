@@ -21,4 +21,7 @@ public class CreatePasteForm {
     private ExpiryOption expiry = ExpiryOption.NEVER;
 
     private boolean burnAfterRead;
+
+    @Size(max = 72, message = "Password must be at most 72 characters")
+    private String password;
 }
