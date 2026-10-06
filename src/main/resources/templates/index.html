@@ -14,10 +14,12 @@
     <form th:action="@{/paste}" th:object="${form}" method="post">
         <label for="title">Title (optional)</label>
         <input id="title" type="text" th:field="*{title}" placeholder="Untitled">
+        <p class="error" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">title error</p>
 
         <label for="content">Content</label>
         <textarea id="content" th:field="*{content}" rows="16"
                   placeholder="Paste your text here..."></textarea>
+        <p class="error" th:if="${#fields.hasErrors('content')}" th:errors="*{content}">content error</p>
 
         <button type="submit">Create paste</button>
     </form>

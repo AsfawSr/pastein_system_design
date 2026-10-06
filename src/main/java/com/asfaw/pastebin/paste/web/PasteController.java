@@ -1,16 +1,17 @@
 package com.asfaw.pastebin.paste.web;
 
 import com.asfaw.pastebin.paste.Paste;
+import com.asfaw.pastebin.paste.PasteNotFoundException;
 import com.asfaw.pastebin.paste.PasteService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.server.ResponseStatusException;
 
 @Controller
 @RequiredArgsConstructor
@@ -25,7 +26,10 @@ public class PasteController {
     }
 
     @PostMapping("/paste")
-    public String create(@ModelAttribute("form") CreatePasteForm form) {
+    public String create(@Valid @ModelAttribute("form") CreatePasteForm form, BindingResult binding) {
+        if (binding.hasErrors()) {
+            return "index";
+        }
         Paste paste = service.create(form.getTitle(), form.getContent());
         return "redirect:/p/" + paste.getId();
     }
@@ -33,7 +37,7 @@ public class PasteController {
     @GetMapping("/p/{id}")
     public String view(@PathVariable String id, Model model) {
         Paste paste = service.find(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new PasteNotFoundException(id));
         model.addAttribute("paste", paste);
         return "paste/view";
     }

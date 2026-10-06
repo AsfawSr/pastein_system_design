@@ -74,3 +74,5 @@ pre {
 code { font-family: ui-monospace, Consolas, monospace; }
 
 a { color: var(--accent); }
+
+.error { color: #f23f43; font-size: 0.875rem; margin: 0; }

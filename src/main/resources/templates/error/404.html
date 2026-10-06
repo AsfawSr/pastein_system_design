@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Not found — Pastebin</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header>
+    <h1><a th:href="@{/}">Pastebin</a></h1>
+</header>
+<main>
+    <h2>404 — Paste not found</h2>
+    <p>This paste doesn't exist, has expired, or was deleted.</p>
+    <p><a th:href="@{/}">+ New paste</a></p>
+</main>
+</body>
+</html>
