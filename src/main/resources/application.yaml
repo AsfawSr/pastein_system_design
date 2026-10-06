@@ -13,3 +13,6 @@ spring:
 pastebin:
   cleanup:
     interval: PT10M
+  rate-limit:
+    capacity: 10
+    refill-per-minute: 10
