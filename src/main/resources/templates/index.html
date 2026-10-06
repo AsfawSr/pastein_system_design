@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pastebin — New paste</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header>
+    <h1><a th:href="@{/}">Pastebin</a></h1>
+</header>
+<main>
+    <form th:action="@{/paste}" th:object="${form}" method="post">
+        <label for="title">Title (optional)</label>
+        <input id="title" type="text" th:field="*{title}" placeholder="Untitled">
+
+        <label for="content">Content</label>
+        <textarea id="content" th:field="*{content}" rows="16"
+                  placeholder="Paste your text here..."></textarea>
+
+        <button type="submit">Create paste</button>
+    </form>
+</main>
+</body>
+</html>
