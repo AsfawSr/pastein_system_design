@@ -2,6 +2,7 @@ package com.asfaw.pastebin.paste.web;
 
 import com.asfaw.pastebin.paste.CreatePasteCommand;
 import com.asfaw.pastebin.paste.Paste;
+import com.asfaw.pastebin.paste.PasteNotFoundException;
 import com.asfaw.pastebin.paste.PasteService;
 import com.asfaw.pastebin.paste.ViewOutcome;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -125,6 +127,30 @@ public class PasteController {
     public String delete(@PathVariable String id, Principal principal) {
         service.deleteOwned(id, principal.getName());
         return "redirect:/mine";
+    }
+
+    @GetMapping("/p/{id}/fork")
+    public String fork(@PathVariable String id, Model model, Principal principal) {
+        Paste source = service.find(id).orElseThrow(() -> new PasteNotFoundException(id));
+        if (source.getPasswordHash() != null) {
+            throw new AccessDeniedException("Protected pastes cannot be forked");
+        }
+        CreatePasteForm form = new CreatePasteForm();
+        form.setTitle(forkTitle(source.getTitle()));
+        form.setContent(source.getContent());
+        form.setLanguage(source.getLanguage());
+        model.addAttribute("form", form);
+        model.addAttribute("languages", LANGUAGES);
+        model.addAttribute("username", principal == null ? null : principal.getName());
+        return "index";
+    }
+
+    private String forkTitle(String title) {
+        if (title == null) {
+            return null;
+        }
+        String forked = "Fork of " + title;
+        return forked.length() > 120 ? forked.substring(0, 120) : forked;
     }
 
     private String render(ViewOutcome outcome, String id, Model model, Principal principal) {

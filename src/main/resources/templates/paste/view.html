@@ -27,6 +27,7 @@
             <span th:text="'· ' + ${paste.views} + ' views'">views</span>
             <span th:text="'· ' + ${paste.language}">language</span>
             <span th:unless="${burned}">· <a th:href="@{/p/{id}/raw(id=${paste.id})}">Raw</a></span>
+            <span th:unless="${burned}" th:if="${paste.passwordHash == null}">· <a th:href="@{/p/{id}/fork(id=${paste.id})}">Fork</a></span>
         </p>
         <pre><code th:classappend="'language-' + ${paste.language}" th:text="${paste.content}">content</code></pre>
         <p th:if="${canEdit}" class="owner-actions">

@@ -107,6 +107,43 @@ class PasteFlowTest {
     }
 
     @Test
+    void forkPrefillsCreateFormWithSourceContent() throws Exception {
+        MvcResult result = mvc.perform(post("/paste")
+                        .with(csrf())
+                        .param("title", "original")
+                        .param("content", "forkable body")
+                        .param("expiry", "NEVER")
+                        .param("visibility", "UNLISTED")
+                        .param("language", "java"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        mvc.perform(get(result.getResponse().getRedirectedUrl() + "/fork"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("index"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Fork of original")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("forkable body")));
+    }
+
+    @Test
+    void forkOfProtectedPasteIsDenied() throws Exception {
+        MvcResult result = mvc.perform(post("/paste")
+                        .with(csrf())
+                        .param("title", "locked fork")
+                        .param("content", "hidden")
+                        .param("expiry", "NEVER")
+                        .param("visibility", "UNLISTED")
+                        .param("language", "plaintext")
+                        .param("password", "pw123"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        mvc.perform(get(result.getResponse().getRedirectedUrl() + "/fork")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("someone")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void publicPasteAppearsInPublicList() throws Exception {
         mvc.perform(post("/paste")
                         .with(csrf())
